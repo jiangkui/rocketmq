@@ -95,6 +95,11 @@ public class DefaultMQProducerTest {
         zeroMsg = new Message(topic, new byte[] {});
         bigMessage = new Message(topic, "This is a very huge message!".getBytes());
 
+        /*
+             fixme jiangkui 从这里开始
+             1. 获取 Broker 列表（根据 topic 获取？）
+             2. 维护 Broker 相关信息（如果挂了，貌似没有互备呀？Broker 集群是怎么互备的？）
+         */
         producer.start();
 
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
@@ -105,6 +110,7 @@ public class DefaultMQProducerTest {
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
 
+        // fixme jiangkui 这个注册是干啥用的？
         producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
@@ -225,6 +231,8 @@ public class DefaultMQProducerTest {
         producer.send(message, new MessageQueue(), sendCallback);
         producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
         producer.send(new Message(), messageQueueSelector, null, sendCallback);
+
+        // fixme jiangkui 发送消息，无论同步还是异步，都统一在一个流程内。实际上也是一个线程池。
         producer.send(message, messageQueueSelector, null, sendCallback, 1000);
         //this message is send success
         producer.send(message, sendCallback, 1000);

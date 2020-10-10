@@ -84,6 +84,10 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * fixme jiangkui
+ * 这个类中封装了客户端一些通用的业务逻辑，无论是 Producer 还是 Consumer，最终需要与服务端交互时，都需要调用这个类中的方法；
+ */
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
@@ -100,6 +104,8 @@ public class MQClientInstance {
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
+
+    // fixme jiangkui broker 地址信息，根据 BrokerName 来获取对应地址
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<String, HashMap<Long, String>>();
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
@@ -231,14 +237,20 @@ public class MQClientInstance {
                     if (null == this.clientConfig.getNamesrvAddr()) {
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
+
+                    // 启动请求响应通道：封装了客户端与 Broker 通信的方法；对调用者（MQClientInstance）隐藏网络通信部分的具体实现。
                     // Start request-response channel
                     this.mQClientAPIImpl.start();
+                    // 启动各种定时任务：包括与 Broker 之间的定时心跳，定时与 NameServer 同步数据等任务；
                     // Start various schedule tasks
                     this.startScheduledTask();
+                    // 启动拉消息服务
                     // Start pull service
                     this.pullMessageService.start();
+                    // 启动Rebalance服务
                     // Start rebalance service
                     this.rebalanceService.start();
+                    // 启动Producer服务
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
